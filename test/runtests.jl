@@ -94,7 +94,21 @@ end
 end
 
 @testset "Test write error." begin
-
     @test_throws LoadError include_string(Main, "@enable_write(Int)")
+end
+
+struct ExampleParam{T}
+    item::T
+end
+
+@testset "Test ExampleParam" begin
+
+    @enable_write ExampleParam{UInt16}
+    @enable_read ExampleParam{UInt16}
+
+    io = IOBuffer()
+    @test write(io, ExampleParam{UInt16}(42)) == 2
+    seekstart(io)
+    @test read(io, ExampleParam{UInt16}).item == 42
 
 end

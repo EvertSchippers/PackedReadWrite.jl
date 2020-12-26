@@ -19,7 +19,7 @@ macro enable_read(type)
     
     Base.eval(__module__, quote
 
-        function Base.read(io::IO, type::Type{$type})
+        function Base.read(io::IO, type::Type{T}) where T <: $type
             $type(read.(Ref(io), $types)...)
         end
     
@@ -40,7 +40,7 @@ macro enable_write(type)
     
     Base.eval(__module__, quote
 
-        function Base.write(io::IO, item::$type)
+        function Base.write(io::IO, item::T) where T <: $type
             return sum(write.(Ref(io), getfield.(Ref(item), $names)))
         end
     
