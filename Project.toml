@@ -1,0 +1,4 @@
+name = "PackedReadWrite"
+uuid = "5d6e2f64-5c87-46b6-9ff4-cf810e78676d"
+authors = ["Evert Schippers <schippers.evert@gmail.com>"]
+version = "0.1.0"
