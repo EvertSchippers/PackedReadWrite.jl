@@ -57,3 +57,44 @@ end
     @test_throws LoadError include_string(Main, "@enable_read(ExamplePrivate)")
     
 end
+
+@testset "Test write." begin
+
+    @enable_write(Example)
+
+    example = Example(10,20,30)
+    io = IOBuffer()
+    bytes_written = write(io, example)
+    @test bytes_written == 9
+    @test bytes_written == position(io)    
+    seekstart(io)
+    @test read(io, Float32) == 10
+    @test read(io, UInt8) == 20
+    @test read(io, Int32) == 30
+
+    @enable_write(ExamplePrivate)
+
+    io = IOBuffer()
+    example_private = ExamplePrivate()
+    write(io, example_private)
+    seekstart(io)
+    @test read(io, Float32) == 1
+    @test read(io, UInt8) == 2
+    @test read(io, Int32) == 3
+
+    @enable_write(SomeOtherModule.OtherStruct)
+
+    other = SomeOtherModule.OtherStruct(1,2)
+    io = IOBuffer()
+    @test write(io, other) == 2
+    seekstart(io)
+    @test read(io, UInt8) == 1
+    @test read(io, UInt8) == 2
+
+end
+
+@testset "Test write error." begin
+
+    @test_throws LoadError include_string(Main, "@enable_write(Int)")
+
+end
