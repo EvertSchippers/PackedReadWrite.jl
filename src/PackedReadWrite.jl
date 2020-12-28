@@ -1,52 +1,58 @@
 module PackedReadWrite
 
-export @enable_read, @enable_write
+export @reflect, read_struct, write_struct
 
-macro enable_read(type)
-   
+macro reflect(type)
+
     if !Base.eval(__module__, :(isstructtype($type)))
-        error("Can only create `read` method for struct types.")
+        error("Can only extend field... methods for struct types.")
     end
  
-    # tuples with the field types and names:
-    # to be "dynamically hard-coded" into the read method
     types = Base.eval(__module__, :(fieldtypes($type)))
-    names = Base.eval(__module__, :(fieldnames($type)))
-       
-    if !Base.eval(__module__, :(hasmethod($type, $types)))
-        error("No valid constructor found for $type.")
-    end
+    names = Base.eval(__module__, :(fieldnames($type)))    
+    num_fields = length(types)
+
+    constructor_ok = Base.eval(__module__, :(hasmethod($type, $types)))
     
     Base.eval(__module__, quote
+        Base.fieldtypes(::Type{T}) where T <: $type = $types
+        Base.fieldnames(::Type{T}) where T <: $type = $names
+        Base.fieldcount(::Type{T}) where T <: $type = $num_fields        
 
-        function Base.read(io::IO, type::Type{T}) where T <: $type
-            $type(read.(Ref(io), $types)...)
-        end
-    
+        PackedReadWrite.hasfullconstructor(::Type{T}) where T <: $type = $constructor_ok
     end)
-
-    return nothing
+    
+    return
 end
 
-macro enable_write(type)
-   
-    if !Base.eval(__module__, :(isstructtype($type)))
-        error("Can only create `write` method for struct types.")
+function hasfullconstructor(::Type{T})::Bool where T
+    hasmethod(T, fieldtypes(T))
+end
+
+function read_struct(io::IO, ::Type{T}) where T
+    
+    if !(isstructtype(T))
+        error("`$T` is not a struct type.")            
     end
- 
-    # tuples with the field names:
-    # to be "dynamically hard-coded" into the write method
-    names = Base.eval(__module__, :(fieldnames($type)))
     
-    Base.eval(__module__, quote
+    types = fieldtypes(T)
 
-        function Base.write(io::IO, item::T) where T <: $type
-            return sum(write.(Ref(io), getfield.(Ref(item), $names)))
-        end
+    if !(hasfullconstructor(T))
+        error("No valid constructor found for $type.")    
+    end
+
+    T(read.(Ref(io), types)...)
+end
+
+function write_struct(io::IO, sample::T) where T
+
+    if !(isstructtype(T))
+        error("`$T` is not a struct type.")
+    end
+
+    fields = fieldnames(T)
     
-    end)
-
-    return nothing
+    sum(write.(Ref(io), getfield.(Ref(sample), fields)))
 end
 
 end # module
